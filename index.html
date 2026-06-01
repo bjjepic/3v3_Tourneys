@@ -399,7 +399,10 @@
   .lb-name { font-size: 16px; color: #e8eaf8; font-weight: 500; }
   .lb-stat { font-size: 17px; font-weight: 600; text-align: center; color: #6ecfff; }
   .lb-fb { font-size: 17px; font-weight: 600; text-align: center; color: #ff7070; }
-  .lb-kfb { font-size: 18px; font-weight: 700; text-align: center; color: #e8b84b; }
+  .lb-kfb { font-size: 18px; font-weight: 700; text-align: center; }
+  .lb-kfb.pos { color: #5deb87; }
+  .lb-kfb.neg { color: #ff5e5e; }
+  .lb-kfb.zero { color: #7a85b0; }
 
   .copy-notice {
     text-align: center;
@@ -511,14 +514,14 @@
       <span class="icon">&#9733;</span>
       Player Leaderboard
     </div>
-    <div class="lb-subtitle">Ranked by K/FB ratio</div>
+    <div class="lb-subtitle">Ranked by K−FB</div>
   </div>
   <div class="lb-head">
     <span>#</span>
     <span style="text-align:left">Player</span>
     <span>Kills</span>
     <span>1st Blood</span>
-    <span>K/FB</span>
+    <span>K−FB</span>
   </div>
   <div id="leaderboard"></div>
 </div>
@@ -592,14 +595,14 @@
     renderLB();
   }
 
-  function kfbRatio(p) {
-    if (p.fb === 0) return p.kills > 0 ? p.kills : 0;
-    return parseFloat((p.kills / p.fb).toFixed(2));
+  function netVal(p) { return p.kills - p.fb; }
+  function netDisplay(p) {
+    const n = netVal(p);
+    return n > 0 ? '+' + n : String(n);
   }
-
-  function kfbDisplay(p) {
-    if (p.fb === 0) return p.kills > 0 ? p.kills.toFixed(2) : '—';
-    return (p.kills / p.fb).toFixed(2);
+  function netClass(p) {
+    const n = netVal(p);
+    return n > 0 ? 'lb-kfb pos' : n < 0 ? 'lb-kfb neg' : 'lb-kfb zero';
   }
 
   function renderLB() {
@@ -611,8 +614,8 @@
     });
 
     all.sort((a, b) => {
-      const ra = kfbRatio(a), rb = kfbRatio(b);
-      if (rb !== ra) return rb - ra;
+      const na = netVal(a), nb = netVal(b);
+      if (nb !== na) return nb - na;
       return b.kills - a.kills;
     });
 
@@ -623,13 +626,12 @@
       const rankClass = rank < 3 ? 'r' + (rank + 1) : '';
       const rowClass = rank === 0 ? 'lb-row gold-row' : 'lb-row';
       const dotColor = p.team === 0 ? 'var(--team1)' : 'var(--team2)';
-      const ratio = kfbDisplay(p);
       return `<div class="${rowClass}">
         <div class="lb-rank ${rankClass}">${medals[rank] || (rank + 1) + 'th'}</div>
         <div class="lb-name-cell"><div class="lb-dot" style="background:${dotColor}"></div><span class="lb-name">${name}</span></div>
         <div class="lb-stat">${p.kills}</div>
         <div class="lb-fb">${p.fb}</div>
-        <div class="lb-kfb">${ratio}</div>
+        <div class="${netClass(p)}">${netDisplay(p)}</div>
       </div>`;
     }).join('');
   }
@@ -659,7 +661,7 @@
       lines.push(`[ Team ${ti + 1} ]`);
       teams[ti].players.forEach((p, pi) => {
         const name = p.name.trim() || 'Player ' + (pi + 1);
-        lines.push(`  ${name} — Kills: ${p.kills}  |  1st Bloods: ${p.fb}  |  K/FB: ${kfbDisplay(p)}`);
+        lines.push(`  ${name} — Kills: ${p.kills}  |  1st Bloods: ${p.fb}  |  K−FB: ${netDisplay(p)}`);
       });
       lines.push('');
     });
@@ -671,17 +673,17 @@
       });
     });
     all.sort((a, b) => {
-      const ra = kfbRatio(a), rb = kfbRatio(b);
-      if (rb !== ra) return rb - ra;
+      const na = netVal(a), nb = netVal(b);
+      if (nb !== na) return nb - na;
       return b.kills - a.kills;
     });
 
     lines.push('─────────────────────────────');
-    lines.push('📊 Player Rankings (by K/FB)');
+    lines.push('📊 Player Rankings (by K−FB)');
     const meds = ['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣'];
     all.forEach((p, i) => {
       const name = p.name.trim() || 'Player ' + (p.pi + 1);
-      lines.push(`${meds[i] || (i+1)+'.'} ${name} (Team ${p.team + 1}) — ${p.kills}K / ${p.fb} FB / K/FB: ${kfbDisplay(p)}`);
+      lines.push(`${meds[i] || (i+1)+'.'} ${name} (Team ${p.team + 1}) — ${p.kills}K / ${p.fb} FB / Net: ${netDisplay(p)}`);
     });
 
     navigator.clipboard.writeText(lines.join('\n')).then(() => {
@@ -698,4 +700,4 @@
 </html>
 
 
-// Whats upppp 
+// knackered still 
